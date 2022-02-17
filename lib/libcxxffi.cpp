@@ -147,7 +147,8 @@ struct CxxInstance {
   JuliaCodeGenerator *JCodeGen;
   JuliaPCHGenerator *PCHGenerator;
 };
-const clang::InputKind CKind = clang::InputKind::C;
+
+constexpr auto CKind = clang::InputKind(clang::Language::C);
 
 extern "C" {
 #define TYPE_ACCESS(EX, IN)                                                    \
