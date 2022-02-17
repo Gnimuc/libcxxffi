@@ -256,9 +256,9 @@ JL_DLLEXPORT void *ParseDeclaration(CxxInstance *Cxx,
   clang::AccessSpecifier AS;
   P->ParseDeclarationSpecifiers(DS, clang::Parser::ParsedTemplateInfo(), AS,
                                 clang::Parser::DeclSpecContext::DSC_top_level);
-  clang::ParsingDeclarator D(*P, DS, clang::DeclaratorContext::FileContext);
+  clang::ParsingDeclarator D(*P, DS, clang::DeclaratorContext::File);
   P->ParseDeclarator(D);
-  D.setFunctionDefinitionKind(clang::FDK_Definition);
+  D.setFunctionDefinitionKind(clang::FunctionDefinitionKind::Definition);
   clang::Scope *TheScope =
       DCScope ? S->getScopeForContext(DCScope) : P->getCurScope();
   assert(TheScope);
@@ -274,7 +274,7 @@ JL_DLLEXPORT void ParseParameterList(CxxInstance *Cxx, void **params,
     P->ConsumeToken();
   clang::ParsingDeclSpec DS(*P);
   clang::AccessSpecifier AS;
-  clang::ParsingDeclarator D(*P, DS, clang::DeclaratorContext::FileContext);
+  clang::ParsingDeclarator D(*P, DS, clang::DeclaratorContext::File);
 
   clang::ParsedAttributes FirstArgAttrs(P->getAttrFactory());
   SmallVector<clang::DeclaratorChunk::ParamInfo, 16> ParamInfo;
@@ -284,7 +284,8 @@ JL_DLLEXPORT void ParseParameterList(CxxInstance *Cxx, void **params,
       P, clang::Scope::FunctionPrototypeScope |
              clang::Scope::FunctionDeclarationScope | clang::Scope::DeclScope);
 
-  P->ParseParameterDeclarationClause(D, FirstArgAttrs, ParamInfo, EllipsisLoc);
+  P->ParseParameterDeclarationClause(D.getContext(), FirstArgAttrs, ParamInfo,
+                                     EllipsisLoc);
 
   assert(ParamInfo.size() == nparams);
   for (size_t i = 0; i < nparams; ++i)
