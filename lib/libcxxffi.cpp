@@ -1516,7 +1516,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH,
   _cxxparse(Cxx);
 
   f_julia_type_to_llvm = (llvm::Type * (*)(void *, bool *))
-      dlsym(RTLD_DEFAULT, "julia_type_to_llvm");
+      dlsym(RTLD_DEFAULT, "jl_type_to_llvm");
 
   assert(f_julia_type_to_llvm);
 }
