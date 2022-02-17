@@ -6,18 +6,6 @@
 #include <dlfcn.h>
 #include <iostream>
 
-#ifdef NDEBUG
-#define OLD_NDEBUG
-#endif
-
-#ifdef LLVM_NDEBUG
-#define NDEBUG 1
-#else
-#undef NDEBUG
-#endif
-
-#include "llvm/Config/llvm-config.h"
-
 // LLVM includes
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Type.h"
@@ -69,10 +57,6 @@
 #else
 #define STDCALL
 #define JL_DLLEXPORT __attribute__((visibility("default")))
-#endif
-
-#ifndef OLD_NDEBUG
-#undef NDEBUG
 #endif
 
 #if defined(_CPU_X86_64_)
