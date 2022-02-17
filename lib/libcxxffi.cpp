@@ -2147,8 +2147,9 @@ JL_DLLEXPORT void *createAddrOfExpr(CxxInstance *Cxx, clang::Expr *expr) {
 JL_DLLEXPORT void *createCast(CxxInstance *Cxx, clang::Expr *expr,
                               clang::Type *t, int kind) {
   return clang::ImplicitCastExpr::Create(
-      Cxx->CI->getASTContext(), clang::QualType(t, 0), (clang::CastKind)kind,
-      expr, NULL, clang::VK_RValue);
+      Cxx->CI->getASTContext(), clang::QualType(t, 0),
+      static_cast<clang::CastKind>(kind), expr, nullptr, clang::VK_RValue,
+      Cxx->CI->getSema().CurFPFeatureOverrides());
 }
 
 JL_DLLEXPORT void *CreateBinOp(CxxInstance *Cxx, clang::Scope *S, int opc,
