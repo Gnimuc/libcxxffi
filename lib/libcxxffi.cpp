@@ -203,17 +203,16 @@ extern void jl_error(const char *str);
 // For initialization.jl
 JL_DLLEXPORT void add_directory(CxxInstance *Cxx, int kind, int isFramework,
                                 const char *dirname) {
-  clang::SrcMgr::CharacteristicKind flag =
-      (clang::SrcMgr::CharacteristicKind)kind;
-  clang::FileManager &fm = Cxx->CI->getFileManager();
-  clang::Preprocessor &pp = Cxx->Parser->getPreprocessor();
-  auto dir = fm.getDirectory(dirname);
-  if (dir == NULL)
+  auto flag = static_cast<clang::SrcMgr::CharacteristicKind>(kind);
+  auto &fm = Cxx->CI->getFileManager();
+  auto &pp = Cxx->Parser->getPreprocessor();
+  auto DE = fm.getOptionalDirectoryRef(llvm::StringRef(dirname));
+  if (DE)
     std::cout << "WARNING: Could not add directory " << dirname
               << " to clang search path!\n";
   else
     pp.getHeaderSearchInfo().AddSearchPath(
-        clang::DirectoryLookup(dir, flag, isFramework),
+        clang::DirectoryLookup(*DE, flag, isFramework),
         flag == clang::SrcMgr::C_System ||
             flag == clang::SrcMgr::C_ExternCSystem);
 }
