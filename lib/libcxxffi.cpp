@@ -1856,7 +1856,7 @@ JL_DLLEXPORT void *CreateDeclRefExpr(CxxInstance *Cxx, clang::ValueDecl *D,
 }
 
 JL_DLLEXPORT void *EmitDeclRef(CxxInstance *Cxx, clang::DeclRefExpr *DRE) {
-  return Cxx->CGF->EmitDeclRefLValue(DRE).getPointer();
+  return Cxx->CGF->EmitDeclRefLValue(DRE).getPointer(*Cxx->CGF);
 }
 
 JL_DLLEXPORT void *DeduceReturnType(clang::Expr *expr) {
