@@ -2731,8 +2731,8 @@ JL_DLLEXPORT void *CreateCStyleCast(CxxInstance *Cxx, clang::Expr *E,
 }
 
 JL_DLLEXPORT void *CreateReturnStmt(CxxInstance *Cxx, clang::Expr *E) {
-  return (void *)new (Cxx->CI->getASTContext())
-      clang::ReturnStmt(clang::SourceLocation(), E, nullptr);
+  return clang::ReturnStmt::Create(Cxx->CI->getASTContext(),
+                                   clang::SourceLocation(), E, nullptr);
 }
 
 JL_DLLEXPORT void *CreateThisExpr(CxxInstance *Cxx, void *T) {
