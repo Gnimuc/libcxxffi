@@ -297,8 +297,8 @@ JL_DLLEXPORT void *ParseTypeName(CxxInstance *Cxx, int ParseAlias = false) {
       Cxx->Parser->getCurToken().is(clang::tok::eof))
     Cxx->Parser->ConsumeToken();
   auto result = Cxx->Parser->ParseTypeName(
-      nullptr, ParseAlias ? clang::DeclaratorContext::AliasTemplateContext
-                          : clang::DeclaratorContext::TypeNameContext);
+      nullptr, ParseAlias ? clang::DeclaratorContext::AliasTemplate
+                          : clang::DeclaratorContext::TypeName);
   if (result.isInvalid())
     return 0;
   clang::QualType QT = clang::Sema::GetTypeFromParser(result.get());
