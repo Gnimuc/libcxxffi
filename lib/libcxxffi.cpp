@@ -2301,9 +2301,12 @@ JL_DLLEXPORT void *CreatePointerFromObjref(CxxInstance *Cxx,
                                            llvm::Value *val) {
   Type *T_pdjlvalue = PointerType::get(
       cast<PointerType>(T_prjlvalue)->getElementType(), AddressSpace::Derived);
-  Function *PFO = cast<Function>(Cxx->shadow->getOrInsertFunction(
-      "julia.pointer_from_objref",
-      FunctionType::get(T_pjlvalue, {T_pdjlvalue}, false)).getCallee());
+  Function *PFO = cast<Function>(
+      Cxx->shadow
+          ->getOrInsertFunction(
+              "julia.pointer_from_objref",
+              FunctionType::get(T_pjlvalue, {T_pdjlvalue}, false))
+          .getCallee());
   return (void *)builder->CreateCall(
       PFO, {builder->CreateAddrSpaceCast(val, T_pdjlvalue)});
 }
@@ -2548,7 +2551,8 @@ JL_DLLEXPORT void *ActOnTypeParameter(CxxInstance *Cxx, char *Name,
   void *ret = (void *)sema.ActOnTypeParameter(
       &S, false, clang::SourceLocation(), clang::SourceLocation(),
       PP.getIdentifierInfo(Name), clang::SourceLocation(), 0, Position,
-      clang::SourceLocation(), DefaultArg);
+      clang::SourceLocation(), DefaultArg,
+      false); // TODO: support type-constraint
   // sema.ActOnPopScope(clang::SourceLocation(),&S);
   return ret;
 }
