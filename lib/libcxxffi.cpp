@@ -2529,7 +2529,7 @@ JL_DLLEXPORT void *CreateTemplatedFunction(CxxInstance *Cxx, char *Name,
                                            clang::TemplateParameterList **args,
                                            size_t nargs) {
   clang::DeclSpec DS(Cxx->Parser->getAttrFactory());
-  clang::Declarator D(DS, clang::DeclaratorContext::PrototypeContext);
+  clang::Declarator D(DS, clang::DeclaratorContext::Prototype);
   clang::Preprocessor &PP = Cxx->Parser->getPreprocessor();
   D.getName().setIdentifier(PP.getIdentifierInfo(Name),
                             clang::SourceLocation());
