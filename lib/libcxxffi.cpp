@@ -486,7 +486,7 @@ JL_DLLEXPORT void *SpecializeClass(CxxInstance *Cxx,
   if (!ret) {
     ret = clang::ClassTemplateSpecializationDecl::Create(
         Cxx->CI->getASTContext(), tmplt->getTemplatedDecl()->getTagKind(),
-        tmplt->getDeclContext(), tmplt->getTemplatedDecl()->getLocStart(),
+        tmplt->getDeclContext(), tmplt->getTemplatedDecl()->getBeginLoc(),
         tmplt->getLocation(), tmplt,
         ArrayRef<clang::TemplateArgument>{targs, nargs}, nullptr);
     tmplt->AddSpecialization(ret, InsertPos);
