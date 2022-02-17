@@ -1091,10 +1091,10 @@ JL_DLLEXPORT void *BuildCXXNewExpr(CxxInstance *Cxx, clang::Type *type,
           Cxx->CI->getASTContext().getTrivialTypeSourceInfo(Ty), NULL,
           clang::SourceRange(sm.getLocForStartOfFile(sm.getMainFileID()),
                              sm.getLocForStartOfFile(sm.getMainFileID())),
-          clang::ParenListExpr::Create(
-              Cxx->CI->getASTContext(), getTrivialSourceLocation(Cxx),
-              ArrayRef<clang::Expr *>(exprs, nexprs),
-              getTrivialSourceLocation(Cxx)))
+          clang::ParenListExpr::Create(Cxx->CI->getASTContext(),
+                                       getTrivialSourceLocation(Cxx),
+                                       ArrayRef<clang::Expr *>(exprs, nexprs),
+                                       getTrivialSourceLocation(Cxx)))
       .get();
   // return (clang_astcontext) new clang::CXXNewExpr(clang_astcontext, false,
   // nE, dE, )
@@ -1117,13 +1117,14 @@ JL_DLLEXPORT void *build_call_to_member(CxxInstance *Cxx, clang::Expr *MemExprE,
   else if (isa<clang::TypoExpr>(MemExprE)) {
     return NULL;
   } else {
-    return (void *)new (&Cxx->CI->getASTContext()) clang::CXXMemberCallExpr(
+    return clang::CXXMemberCallExpr::Create(
         Cxx->CI->getASTContext(), MemExprE,
         ArrayRef<clang::Expr *>(exprs, nexprs),
         cast<clang::CXXMethodDecl>(
             cast<clang::MemberExpr>(MemExprE)->getMemberDecl())
             ->getReturnType(),
-        clang::VK_RValue, getTrivialSourceLocation(Cxx));
+        clang::VK_RValue, getTrivialSourceLocation(Cxx),
+        Cxx->CI->getSema().CurFPFeatureOverrides());
   }
 }
 
