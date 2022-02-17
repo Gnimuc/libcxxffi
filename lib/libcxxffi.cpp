@@ -2939,62 +2939,62 @@ _Unwind_Reason_Code __cxxjl_personality_v0(int version, _Unwind_Action actions,
  * Until then, yay templates
  */
 
-template <class Tag> struct stowed { static typename Tag::type value; };
-template <class Tag> typename Tag::type stowed<Tag>::value;
+// template <class Tag> struct stowed { static typename Tag::type value; };
+// template <class Tag> typename Tag::type stowed<Tag>::value;
 
-template <class Tag, typename Tag::type x> struct stow_private {
-  stow_private() { stowed<Tag>::value = x; }
-  static stow_private instance;
-};
-template <class Tag, typename Tag::type x>
-stow_private<Tag, x> stow_private<Tag, x>::instance;
+// template <class Tag, typename Tag::type x> struct stow_private {
+//   stow_private() { stowed<Tag>::value = x; }
+//   static stow_private instance;
+// };
+// template <class Tag, typename Tag::type x>
+// stow_private<Tag, x> stow_private<Tag, x>::instance;
 
-typedef llvm::DenseMap<const clang::Type *, llvm::StructType *> TMap;
-typedef llvm::DenseMap<const clang::Type *, clang::CodeGen::CGRecordLayout *>
-    CGRMap;
+// typedef llvm::DenseMap<const clang::Type *, llvm::StructType *> TMap;
+// typedef llvm::DenseMap<const clang::Type *, clang::CodeGen::CGRecordLayout *>
+//     CGRMap;
 
-extern "C" {
+// extern "C" {
 
 // A tag type for A::x.  Each distinct private member you need to
 // access should have its own tag.  Each tag should contain a
 // nested ::type that is the corresponding pointer-to-member type.
-struct CodeGenTypes_RecordDeclTypes {
-  typedef TMap(clang::CodeGen::CodeGenTypes::*type);
-};
-struct CodeGenTypes_CGRecordLayouts {
-  typedef CGRMap(clang::CodeGen::CodeGenTypes::*type);
-};
-template class stow_private<CodeGenTypes_RecordDeclTypes,
-                            &clang::CodeGen::CodeGenTypes::RecordDeclTypes>;
-template class stow_private<CodeGenTypes_CGRecordLayouts,
-                            &clang::CodeGen::CodeGenTypes::CGRecordLayouts>;
+// struct CodeGenTypes_RecordDeclTypes {
+//   typedef TMap(clang::CodeGen::CodeGenTypes::*type);
+// };
+// struct CodeGenTypes_CGRecordLayouts {
+//   typedef CGRMap(clang::CodeGen::CodeGenTypes::*type);
+// };
+// template class stow_private<CodeGenTypes_RecordDeclTypes,
+//                             &clang::CodeGen::CodeGenTypes::RecordDeclTypes>;
+// template class stow_private<CodeGenTypes_CGRecordLayouts,
+//                             &clang::CodeGen::CodeGenTypes::CGRecordLayouts>;
 
-void RegisterType(CxxInstance *Cxx, clang::TagDecl *D, llvm::StructType *ST) {
-  clang::RecordDecl *RD;
-  if (isa<clang::TypedefNameDecl>(D)) {
-    RD = dyn_cast<clang::RecordDecl>(dyn_cast<clang::TypedefNameDecl>(D)
-                                         ->getUnderlyingType()
-                                         ->getAsTagDecl());
-  } else {
-    RD = cast<clang::RecordDecl>(D);
-  }
-  const clang::Type *Key = Cxx->CI->getASTContext()
-                               .getTagDeclType(RD)
-                               .getCanonicalType()
-                               .getTypePtr();
-  (Cxx->CGM->getTypes().*stowed<CodeGenTypes_RecordDeclTypes>::value)[Key] = ST;
-  llvm::StructType *FakeST = llvm::StructType::create(jl_LLVMContext);
-  (Cxx->CGM->getTypes().*stowed<CodeGenTypes_CGRecordLayouts>::value)[Key] =
-      Cxx->CGM->getTypes().ComputeRecordLayout(RD, FakeST);
-}
+// void RegisterType(CxxInstance *Cxx, clang::TagDecl *D, llvm::StructType *ST) {
+//   clang::RecordDecl *RD;
+//   if (isa<clang::TypedefNameDecl>(D)) {
+//     RD = dyn_cast<clang::RecordDecl>(dyn_cast<clang::TypedefNameDecl>(D)
+//                                          ->getUnderlyingType()
+//                                          ->getAsTagDecl());
+//   } else {
+//     RD = cast<clang::RecordDecl>(D);
+//   }
+//   const clang::Type *Key = Cxx->CI->getASTContext()
+//                                .getTagDeclType(RD)
+//                                .getCanonicalType()
+//                                .getTypePtr();
+//   (Cxx->CGM->getTypes().*stowed<CodeGenTypes_RecordDeclTypes>::value)[Key] = ST;
+//   llvm::StructType *FakeST = llvm::StructType::create(jl_LLVMContext);
+//   (Cxx->CGM->getTypes().*stowed<CodeGenTypes_CGRecordLayouts>::value)[Key] =
+//       Cxx->CGM->getTypes().ComputeRecordLayout(RD, FakeST);
+// }
 
-JL_DLLEXPORT bool isDCComplete(clang::DeclContext *DC) {
-  return (!clang::isa<clang::TagDecl>(DC) || DC->isDependentContext() ||
-          clang::cast<clang::TagDecl>(DC)->isCompleteDefinition() ||
-          clang::cast<clang::TagDecl>(DC)->isBeingDefined());
-}
+// JL_DLLEXPORT bool isDCComplete(clang::DeclContext *DC) {
+//   return (!clang::isa<clang::TagDecl>(DC) || DC->isDependentContext() ||
+//           clang::cast<clang::TagDecl>(DC)->isCompleteDefinition() ||
+//           clang::cast<clang::TagDecl>(DC)->isBeingDefined());
+// }
 
-} // extern "C"
+// } // extern "C"
 
 #ifndef _OS_WINDOWS_
 #include <signal.h>
