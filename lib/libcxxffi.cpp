@@ -2303,7 +2303,7 @@ JL_DLLEXPORT void *CreatePointerFromObjref(CxxInstance *Cxx,
       cast<PointerType>(T_prjlvalue)->getElementType(), AddressSpace::Derived);
   Function *PFO = cast<Function>(Cxx->shadow->getOrInsertFunction(
       "julia.pointer_from_objref",
-      FunctionType::get(T_pjlvalue, {T_pdjlvalue}, false)));
+      FunctionType::get(T_pjlvalue, {T_pdjlvalue}, false)).getCallee());
   return (void *)builder->CreateCall(
       PFO, {builder->CreateAddrSpaceCast(val, T_pdjlvalue)});
 }
