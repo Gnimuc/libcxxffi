@@ -1028,8 +1028,8 @@ JL_DLLEXPORT int typeconstruct(CxxInstance *Cxx, void *type,
   if (Ty->isDependentType() ||
       clang::CallExpr::hasAnyTypeDependentArguments(Exprs)) {
     *ret = clang::CXXUnresolvedConstructExpr::Create(
-        Cxx->CI->getASTContext(), TInfo, getTrivialSourceLocation(Cxx), Exprs,
-        getTrivialSourceLocation(Cxx));
+        Cxx->CI->getASTContext(), Ty, TInfo, getTrivialSourceLocation(Cxx),
+        Exprs, getTrivialSourceLocation(Cxx));
     return true;
   }
 
