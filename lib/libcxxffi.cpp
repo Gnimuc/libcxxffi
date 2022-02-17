@@ -78,9 +78,11 @@
 #error pointer size not known for your platform / compiler
 #endif
 
-// From julia
 using namespace llvm;
-extern llvm::LLVMContext &jl_LLVMContext;
+
+// From julia
+// extern llvm::LLVMContext &jl_LLVMContext;
+static llvm::LLVMContext &jl_LLVMContext = *(new llvm::LLVMContext());
 static llvm::Type *T_pvalue_llvmt;
 static llvm::Type *T_pjlvalue;
 static llvm::Type *T_prjlvalue;
