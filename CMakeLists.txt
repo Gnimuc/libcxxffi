@@ -30,18 +30,22 @@ message(STATUS "Found Clang: ${ClangCPP}")
 find_library(LLVM NAMES LLVM HINTS "${LLVM_DIR}/lib")
 message(STATUS "Found LLVM: ${LLVM}")
 
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+find_package(Julia REQUIRED)
+
 add_subdirectory(lib)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 
 set(CLANG_SRC ${CMAKE_CURRENT_SOURCE_DIR}/llvm-project/clang)
-target_sources(cxxffi PRIVATE ${CLANG_SRC}/tools/libclang/CXString.cpp)
+set(LLVM_SRC ${CMAKE_CURRENT_SOURCE_DIR}/llvm-project/llvm)
 
 target_include_directories(cxxffi PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CLANG_DIR}/include>
     $<BUILD_INTERFACE:${LLVM_DIR}/include>
-    $<BUILD_INTERFACE:${CLANG_SRC}/tools>
+    $<BUILD_INTERFACE:${CLANG_SRC}/lib>
+    $<BUILD_INTERFACE:${LLVM_SRC}/lib>
     $<INSTALL_INTERFACE:include>)
     
 target_compile_features(cxxffi PRIVATE cxx_std_14)
@@ -57,7 +61,7 @@ if (WIN32)
     target_compile_definitions(cxxffi PUBLIC "_CINDEX_LIB_")
 endif(WIN32)
 
-target_link_libraries(cxxffi LINK_PUBLIC ${ClangCPP} ${LLVM})
+target_link_libraries(cxxffi LINK_PUBLIC ${ClangCPP} ${LLVM} ${Julia_LIBRARY})
 
 # Install Binaries
 install(TARGETS cxxffi
