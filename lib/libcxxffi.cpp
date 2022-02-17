@@ -1091,7 +1091,7 @@ JL_DLLEXPORT void *BuildCXXNewExpr(CxxInstance *Cxx, clang::Type *type,
           Cxx->CI->getASTContext().getTrivialTypeSourceInfo(Ty), NULL,
           clang::SourceRange(sm.getLocForStartOfFile(sm.getMainFileID()),
                              sm.getLocForStartOfFile(sm.getMainFileID())),
-          new (Cxx->CI->getASTContext()) clang::ParenListExpr(
+          clang::ParenListExpr::Create(
               Cxx->CI->getASTContext(), getTrivialSourceLocation(Cxx),
               ArrayRef<clang::Expr *>(exprs, nexprs),
               getTrivialSourceLocation(Cxx)))
