@@ -625,31 +625,39 @@ static Function *CloneFunctionAndAdjust(
           Cxx->CGF->CreateIRTemp(FD->getReturnType(), "retval");
       builder.SetInsertPoint(Cxx->CGF->Builder.GetInsertBlock(),
                              Cxx->CGF->Builder.GetInsertPoint());
-      Function *PTLSStates = cast<Function>(Cxx->shadow->getOrInsertFunction(
-          "julia.ptls_states",
-          FunctionType::get(
-              PointerType::get(PointerType::get(T_pjlvalue, 0), 0), {})));
+      Function *PTLSStates = cast<Function>(
+          Cxx->shadow
+              ->getOrInsertFunction(
+                  "julia.ptls_states",
+                  FunctionType::get(
+                      PointerType::get(PointerType::get(T_pjlvalue, 0), 0), {}))
+              .getCallee());
       Function *jl_alloc_obj_func = Function::Create(
           FunctionType::get(T_prjlvalue, {T_pint8, T_size, T_prjlvalue}, false),
           Function::ExternalLinkage, "julia.gc_alloc_obj");
       Type *T_pdjlvalue =
           PointerType::get(cast<PointerType>(T_prjlvalue)->getElementType(),
                            AddressSpace::Derived);
-      Function *pointer_from_objref_func =
-          cast<Function>(Cxx->shadow->getOrInsertFunction(
-              "julia.pointer_from_objref",
-              FunctionType::get(T_pjlvalue, {T_pdjlvalue}, false)));
+      Function *pointer_from_objref_func = cast<Function>(
+          Cxx->shadow
+              ->getOrInsertFunction(
+                  "julia.pointer_from_objref",
+                  FunctionType::get(T_pjlvalue, {T_pdjlvalue}, false))
+              .getCallee());
 
       Type *TokenTy = Type::getTokenTy(jl_LLVMContext);
       Type *VoidTy = Type::getVoidTy(jl_LLVMContext);
-      Function *gc_preserve_begin_func =
-          cast<Function>(Cxx->shadow->getOrInsertFunction(
-              "llvm.julia.gc_preserve_begin",
-              FunctionType::get(TokenTy, {T_prjlvalue}, true)));
-      Function *gc_preserve_end_func =
-          cast<Function>(Cxx->shadow->getOrInsertFunction(
-              "llvm.julia.gc_preserve_end",
-              FunctionType::get(VoidTy, {TokenTy}, false)));
+      Function *gc_preserve_begin_func = cast<Function>(
+          Cxx->shadow
+              ->getOrInsertFunction(
+                  "llvm.julia.gc_preserve_begin",
+                  FunctionType::get(TokenTy, {T_prjlvalue}, true))
+              .getCallee());
+      Function *gc_preserve_end_func = cast<Function>(
+          Cxx->shadow
+              ->getOrInsertFunction("llvm.julia.gc_preserve_end",
+                                    FunctionType::get(VoidTy, {TokenTy}, false))
+              .getCallee());
 
       // Unconditionally emit the PTLSStates call into the entry block,
       // otherwise julia's passes may ignore it.
@@ -747,10 +755,14 @@ static Function *CloneFunctionAndAdjust(
                                                ->getElementType()
                                                ->isAggregateType())) {
       Cxx->CGF->EmitAggregateCopy(
-          Cxx->CGF->ReturnValue,
-          clang::CodeGen::Address(
-              Call, clang::CharUnits::fromQuantity(sizeof(void *))),
-          FD->getReturnType());
+          Cxx->CGF->MakeAddrLValue(Cxx->CGF->ReturnValue, FD->getReturnType()),
+          Cxx->CGF->MakeAddrLValue(
+              clang::CodeGen::Address(
+                  Call, clang::CharUnits::fromQuantity(sizeof(void *))),
+              FD->getReturnType()),
+          FD->getReturnType(),
+          clang::CodeGen::AggValueSlot::MayOverlap); // TODO: can this be
+                                                     // optimized?
       Cxx->CGF->EmitFunctionEpilog(FI, false, clang::SourceLocation());
     } else {
       Value *Ret = Call;
@@ -817,7 +829,7 @@ static Function *CloneFunctionAndAdjust(
   }
 
   InlineFunctionInfo IFI;
-  llvm::InlineFunction(Call, IFI);
+  llvm::InlineFunction(*Call, IFI);
 
   return NewF;
 }
