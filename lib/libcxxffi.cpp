@@ -2595,8 +2595,8 @@ JL_DLLEXPORT void *ActOnTypeParameterParserScope(CxxInstance *Cxx, char *Name,
   void *ret = (void *)sema.ActOnTypeParameter(
       Cxx->Parser->getCurScope(), false, clang::SourceLocation(),
       clang::SourceLocation(), PP.getIdentifierInfo(Name),
-      clang::SourceLocation(), 0, Position, clang::SourceLocation(),
-      DefaultArg, false);  // TODO: support type-constraint
+      clang::SourceLocation(), 0, Position, clang::SourceLocation(), DefaultArg,
+      false); // TODO: support type-constraint
   // sema.ActOnPopScope(clang::SourceLocation(),&S);
   return ret;
 }
@@ -2707,7 +2707,7 @@ static clang::ExprResult CreateFunctionRefExpr(
   if (FoundDecl != Fn && S.DiagnoseUseOfDecl(Fn, Loc))
     return clang::ExprError();
   clang::DeclRefExpr *DRE = new (S.Context) clang::DeclRefExpr(
-      Fn, false, Fn->getType(), clang::VK_LValue, Loc, LocInfo);
+      S.Context, Fn, false, Fn->getType(), clang::VK_LValue, Loc, LocInfo);
   if (HadMultipleCandidates)
     DRE->setHadMultipleCandidates(true);
 
