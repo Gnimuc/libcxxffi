@@ -23,12 +23,12 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/ValueMap.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#include <llvm/ExecutionEngine/ExecutionEngine.h>
 
 // Clang includes
 #include "clang/AST/ASTContext.h"
@@ -39,15 +39,22 @@
 #undef private
 #include "Sema/TypeLocBuilder.h"
 #include "clang/AST/ASTConsumer.h"
+#include "clang/AST/ASTContext.h"
+#include "clang/AST/DeclTemplate.h"
 #include "clang/AST/DeclVisitor.h"
+#include "clang/AST/PrettyDeclStackTrace.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/StmtVisitor.h"
+#include "clang/AST/Type.h"
 #include "clang/Analysis/DomainSpecific/CocoaConventions.h"
+#include "clang/Basic/CodeGenOptions.h"
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/SourceManager.h"
+#include "clang/Basic/Specifiers.h"
 #include "clang/Basic/TargetInfo.h"
-#include "clang/Basic/VirtualFileSystem.h"
+#include "clang/CodeGen/CGFunctionInfo.h"
 #include "clang/Frontend/ASTUnit.h"
+#include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Frontend/MultiplexConsumer.h"
 #include "clang/Lex/HeaderSearch.h"
@@ -56,26 +63,19 @@
 #include "clang/Lex/PreprocessorOptions.h"
 #include "clang/Parse/ParseAST.h"
 #include "clang/Parse/ParseDiagnostic.h"
+#include "clang/Parse/RAIIObjectsForParser.h"
 #include "clang/Sema/Initialization.h"
 #include "clang/Sema/Lookup.h"
-#include "clang/Sema/PrettyDeclStackTrace.h"
 #include "clang/Sema/Sema.h"
 #include "clang/Sema/SemaConsumer.h"
 #include "clang/Sema/SemaDiagnostic.h"
 #include "clang/Serialization/ASTWriter.h"
-#include <clang/AST/ASTContext.h>
-#include <clang/AST/DeclTemplate.h>
-#include <clang/AST/Type.h>
-#include <clang/Basic/Specifiers.h>
-#include <clang/CodeGen/CGFunctionInfo.h>
-#include <clang/Frontend/CodeGenOptions.h>
-#include <clang/Frontend/CompilerInstance.h>
-#include <clang/Parse/RAIIObjectsForParser.h>
+#include "llvm/Support/VirtualFileSystem.h"
 
 #include "CodeGen/CodeGenModule.h"
-#include <CodeGen/CodeGenTypes.h>
+#include "CodeGen/CodeGenTypes.h"
 #define private public
-#include <CodeGen/CodeGenFunction.h>
+#include "CodeGen/CodeGenFunction.h"
 #undef private
 #include "CodeGen/CGCXXABI.h"
 
