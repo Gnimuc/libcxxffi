@@ -2578,8 +2578,9 @@ JL_DLLEXPORT void FinalizeAnonClass(CxxInstance *Cxx,
   llvm::SmallVector<clang::Decl *, 0> Fields;
   Cxx->CI->getSema().ActOnFields(nullptr, clang::SourceLocation(), TheClass,
                                  Fields, clang::SourceLocation(),
-                                 clang::SourceLocation(), nullptr);
-  Cxx->CI->getSema().CheckCompletedCXXClass(TheClass);
+                                 clang::SourceLocation(),
+                                 clang::ParsedAttributesView());
+  Cxx->CI->getSema().CheckCompletedCXXClass(nullptr, TheClass);
 }
 
 JL_DLLEXPORT void EnterParserScope(CxxInstance *Cxx) {
