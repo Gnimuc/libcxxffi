@@ -1772,7 +1772,8 @@ JL_DLLEXPORT void *CreateCxxCallMethodDecl(CxxInstance *Cxx,
                                  MethodNameLoc),
       T, Cxx->CI->getASTContext().getTrivialTypeSourceInfo(T), clang::SC_None,
       /*isInline=*/true,
-      /*isConstExpr=*/false, getTrivialSourceLocation(Cxx));
+      /*isConstExpr=*/clang::ConstexprSpecKind::Unspecified,
+      getTrivialSourceLocation(Cxx));
   Method->setAccess(clang::AS_public);
   return Method;
 }
