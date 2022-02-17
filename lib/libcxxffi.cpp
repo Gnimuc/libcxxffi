@@ -1329,12 +1329,12 @@ public:
 class JuliaPCHGenerator : public clang::PCHGenerator {
 public:
   JuliaPCHGenerator(
-      const clang::Preprocessor &PP, StringRef OutputFile,
-      clang::Module *Module, StringRef isysroot,
+      const clang::Preprocessor &PP, clang::InMemoryModuleCache &ModuleCache,
+      StringRef OutputFile, StringRef isysroot,
       std::shared_ptr<clang::PCHBuffer> Buffer,
       ArrayRef<std::shared_ptr<clang::ModuleFileExtension>> Extensions,
       bool IncludeTimestamps = true, bool AllowASTWithErrors = false)
-      : PCHGenerator(PP, OutputFile, isysroot, Buffer, Extensions,
+      : PCHGenerator(PP, ModuleCache, OutputFile, isysroot, Buffer, Extensions,
                      AllowASTWithErrors, IncludeTimestamps) {}
 
   void HandleTranslationUnit(clang::ASTContext &Ctx) {
