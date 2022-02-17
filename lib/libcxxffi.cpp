@@ -19,67 +19,45 @@
 #include "llvm/Config/llvm-config.h"
 
 // LLVM includes
-#include "llvm/ADT/DenseMapInfo.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Bitcode/BitcodeWriter.h"
-#include "llvm/ExecutionEngine/ExecutionEngine.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/ValueMap.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/Support/Host.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Type.h"
 #include "llvm/Support/VirtualFileSystem.h"
 #include "llvm/Transforms/Utils/Cloning.h"
+#include "llvm/Transforms/Utils/ValueMapper.h"
 
 // Clang includes
-#include "clang/AST/ASTContext.h"
-#include "clang/Sema/ScopeInfo.h"
-// Well, yes this is cheating
-#define private public
-#include "clang/Parse/Parser.h"
-#undef private
-#include "Sema/TypeLocBuilder.h"
-#include "clang/AST/ASTConsumer.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/DeclTemplate.h"
+#include "clang/AST/AST.h"
 #include "clang/AST/DeclVisitor.h"
+#include "clang/AST/ExprCXX.h"
 #include "clang/AST/PrettyDeclStackTrace.h"
-#include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/AST/StmtVisitor.h"
-#include "clang/AST/Type.h"
-#include "clang/Analysis/DomainSpecific/CocoaConventions.h"
 #include "clang/Basic/Builtins.h"
-#include "clang/Basic/CodeGenOptions.h"
-#include "clang/Basic/Diagnostic.h"
-#include "clang/Basic/SourceManager.h"
-#include "clang/Basic/Specifiers.h"
-#include "clang/Basic/TargetInfo.h"
 #include "clang/CodeGen/CGFunctionInfo.h"
-#include "clang/Frontend/ASTUnit.h"
 #include "clang/Frontend/CompilerInstance.h"
-#include "clang/Frontend/FrontendAction.h"
+#include "clang/Frontend/FrontendOptions.h"
 #include "clang/Frontend/MultiplexConsumer.h"
 #include "clang/Lex/HeaderSearch.h"
 #include "clang/Lex/Lexer.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Lex/PreprocessorOptions.h"
-#include "clang/Parse/ParseAST.h"
-#include "clang/Parse/ParseDiagnostic.h"
+#include "clang/Serialization/ASTWriter.h"
+
+// Well, yes this is cheating
+#define private public
+#include "clang/Parse/Parser.h" // 'DeclSpecContext' 'ParseDeclarator'
+#undef private
+
 #include "clang/Parse/RAIIObjectsForParser.h"
 #include "clang/Sema/Initialization.h"
 #include "clang/Sema/Lookup.h"
 #include "clang/Sema/Sema.h"
-#include "clang/Sema/SemaConsumer.h"
 #include "clang/Sema/SemaDiagnostic.h"
-#include "clang/Serialization/ASTWriter.h"
-#include "llvm/Support/VirtualFileSystem.h"
 
 #include "CodeGen/CodeGenModule.h"
-#include "CodeGen/CodeGenTypes.h"
 #define private public
 #include "CodeGen/CodeGenFunction.h"
 #undef private
 #include "CodeGen/CGCXXABI.h"
+#include "Sema/TypeLocBuilder.h"
 
 #ifdef _OS_WINDOWS_
 #define STDCALL __stdcall
@@ -2969,7 +2947,8 @@ _Unwind_Reason_Code __cxxjl_personality_v0(int version, _Unwind_Action actions,
 // template class stow_private<CodeGenTypes_CGRecordLayouts,
 //                             &clang::CodeGen::CodeGenTypes::CGRecordLayouts>;
 
-// void RegisterType(CxxInstance *Cxx, clang::TagDecl *D, llvm::StructType *ST) {
+// void RegisterType(CxxInstance *Cxx, clang::TagDecl *D, llvm::StructType *ST)
+// {
 //   clang::RecordDecl *RD;
 //   if (isa<clang::TypedefNameDecl>(D)) {
 //     RD = dyn_cast<clang::RecordDecl>(dyn_cast<clang::TypedefNameDecl>(D)
@@ -2982,8 +2961,8 @@ _Unwind_Reason_Code __cxxjl_personality_v0(int version, _Unwind_Action actions,
 //                                .getTagDeclType(RD)
 //                                .getCanonicalType()
 //                                .getTypePtr();
-//   (Cxx->CGM->getTypes().*stowed<CodeGenTypes_RecordDeclTypes>::value)[Key] = ST;
-//   llvm::StructType *FakeST = llvm::StructType::create(jl_LLVMContext);
+//   (Cxx->CGM->getTypes().*stowed<CodeGenTypes_RecordDeclTypes>::value)[Key] =
+//   ST; llvm::StructType *FakeST = llvm::StructType::create(jl_LLVMContext);
 //   (Cxx->CGM->getTypes().*stowed<CodeGenTypes_CGRecordLayouts>::value)[Key] =
 //       Cxx->CGM->getTypes().ComputeRecordLayout(RD, FakeST);
 // }
