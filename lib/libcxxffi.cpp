@@ -28,6 +28,7 @@
 #include "llvm/IR/ValueMap.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/Host.h"
+#include "llvm/Support/VirtualFileSystem.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
 // Clang includes
@@ -47,6 +48,7 @@
 #include "clang/AST/StmtVisitor.h"
 #include "clang/AST/Type.h"
 #include "clang/Analysis/DomainSpecific/CocoaConventions.h"
+#include "clang/Basic/Builtins.h"
 #include "clang/Basic/CodeGenOptions.h"
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/SourceManager.h"
@@ -1456,17 +1458,18 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH,
       std::make_shared<clang::TargetOptions>(Cxx->CI->getTargetOpts())));
   clang::TargetInfo &tin = Cxx->CI->getTarget();
   if (PCHBuffer) {
-    llvm::IntrusiveRefCntPtr<clang::vfs::OverlayFileSystem> Overlay(
-        new clang::vfs::OverlayFileSystem(clang::vfs::getRealFileSystem()));
-    llvm::IntrusiveRefCntPtr<clang::vfs::InMemoryFileSystem> IMFS(
-        new clang::vfs::InMemoryFileSystem);
+    llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> Overlay(
+        new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
+    llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> IMFS(
+        new llvm::vfs::InMemoryFileSystem);
     IMFS->addFile("/Cxx.pch", PCHTime,
                   llvm::MemoryBuffer::getMemBuffer(
                       StringRef(PCHBuffer, PCHBufferSize), "Cxx.pch", false));
     Overlay->pushOverlay(IMFS);
-    Cxx->CI->setVirtualFileSystem(Overlay);
+    Cxx->CI->createFileManager(Overlay);
+  } else {
+    Cxx->CI->createFileManager();
   }
-  Cxx->CI->createFileManager();
   Cxx->CI->createSourceManager(Cxx->CI->getFileManager());
   if (PCHBuffer) {
     Cxx->CI->getPreprocessorOpts().ImplicitPCHInclude = "/Cxx.pch";
@@ -1490,17 +1493,17 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH,
   if (EmitPCH) {
     assert(&Cxx->CI->getPreprocessor() != NULL);
     assert(&Cxx->CI->getPreprocessor().getModuleLoader() != NULL);
-    StringRef OutputFile = "Cxx.pch";
+    llvm::StringRef OutputFile = "Cxx.pch";
     auto Buffer = std::make_shared<clang::PCHBuffer>();
     Cxx->PCHGenerator = new JuliaPCHGenerator(
-        Cxx->CI->getPreprocessor(), OutputFile, nullptr,
+        Cxx->CI->getPreprocessor(), Cxx->CI->getModuleCache(), OutputFile,
         Cxx->CI->getHeaderSearchOpts().Sysroot, Buffer,
         Cxx->CI->getFrontendOpts().ModuleFileExtensions, true);
     std::vector<std::unique_ptr<clang::ASTConsumer>> Consumers;
     Consumers.push_back(std::unique_ptr<clang::ASTConsumer>(Cxx->JCodeGen));
     Consumers.push_back(std::unique_ptr<clang::ASTConsumer>(Cxx->PCHGenerator));
     Cxx->CI->setASTConsumer(
-        llvm::make_unique<clang::MultiplexConsumer>(std::move(Consumers)));
+        std::make_unique<clang::MultiplexConsumer>(std::move(Consumers)));
   } else {
     Cxx->CI->setASTConsumer(std::unique_ptr<clang::ASTConsumer>(Cxx->JCodeGen));
   }
@@ -1510,7 +1513,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH,
         Cxx->CI->getASTConsumer().GetASTDeserializationListener();
     bool DeleteDeserialListener = false;
     Cxx->CI->createPCHExternalASTSource(
-        "/Cxx.pch", Cxx->CI->getPreprocessorOpts().DisablePCHValidation,
+        "/Cxx.pch", Cxx->CI->getPreprocessorOpts().DisablePCHOrModuleValidation,
         Cxx->CI->getPreprocessorOpts().AllowPCHWithCompilerErrors,
         DeserialListener, DeleteDeserialListener);
   }
@@ -1533,8 +1536,8 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH,
   const char *fname = PCHBuffer ? "/Cxx.cpp" : "/Cxx.h";
   const clang::FileEntry *MainFile =
       Cxx->CI->getFileManager().getVirtualFile(fname, 0, time(0));
-  sm.overrideFileContents(MainFile,
-                          llvm::MemoryBuffer::getNewMemBuffer(0, fname));
+  sm.overrideFileContents(
+      MainFile, llvm::WritableMemoryBuffer::getNewMemBuffer(0, fname));
   sm.setMainFileID(sm.createFileID(MainFile, clang::SourceLocation(),
                                    clang::SrcMgr::C_User));
 
