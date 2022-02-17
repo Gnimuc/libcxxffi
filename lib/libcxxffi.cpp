@@ -149,6 +149,7 @@ struct CxxInstance {
 };
 
 constexpr auto CKind = clang::InputKind(clang::Language::C);
+constexpr auto CXXKind = clang::InputKind(clang::Language::CXX);
 
 extern "C" {
 #define TYPE_ACCESS(EX, IN)                                                    \
@@ -1378,8 +1379,8 @@ static void set_default_clang_options(CxxInstance *Cxx, bool CCompiler,
   Cxx->CI->getHeaderSearchOpts().UseBuiltinIncludes = 1;
 
   clang::CompilerInvocation::setLangDefaults(
-      Cxx->CI->getLangOpts(), CCompiler ? CKind : clang::InputKind::CXX, target,
-      Cxx->CI->getPreprocessorOpts());
+      Cxx->CI->getLangOpts(), CCompiler ? CKind : CXXKind, target,
+      Cxx->CI->getPreprocessorOpts().Includes);
 
   Cxx->CI->getLangOpts().LineComment = 1;
   Cxx->CI->getLangOpts().Bool = 1;
@@ -1427,7 +1428,7 @@ static void set_default_clang_options(CxxInstance *Cxx, bool CCompiler,
   Cxx->CI->getCodeGenOpts().StackRealignment = 1;
   Cxx->CI->getTargetOpts().Triple = target.normalize();
   Cxx->CI->getTargetOpts().CPU =
-      CPU == NULL ? llvm::sys::getHostCPUName() : CPU;
+      CPU == NULL ? llvm::sys::getHostCPUName().data() : CPU;
   StringMap<bool> ActiveFeatures;
   std::vector<std::string> Features;
   if (isnvptx) {
