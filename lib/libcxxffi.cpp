@@ -999,13 +999,13 @@ JL_DLLEXPORT bool ParseFunctionStatementBody(CxxInstance *Cxx, clang::Decl *D) {
 
 JL_DLLEXPORT void *ActOnStartNamespaceDef(CxxInstance *Cxx, char *name) {
   Cxx->Parser->EnterScope(clang::Scope::DeclScope);
-  clang::ParsedAttributes attrs(Cxx->Parser->getAttrFactory());
+  clang::Parser::ParsedAttributesWithRange attrs(Cxx->Parser->getAttrFactory());
   clang::UsingDirectiveDecl *UsingDecl = nullptr;
   return Cxx->CI->getSema().ActOnStartNamespaceDef(
       Cxx->Parser->getCurScope(), getTrivialSourceLocation(Cxx),
       getTrivialSourceLocation(Cxx), getTrivialSourceLocation(Cxx),
       Cxx->Parser->getPreprocessor().getIdentifierInfo(name),
-      getTrivialSourceLocation(Cxx), attrs.getList(), UsingDecl);
+      getTrivialSourceLocation(Cxx), attrs, UsingDecl);
 }
 
 JL_DLLEXPORT void ActOnFinishNamespaceDef(CxxInstance *Cxx, clang::Decl *D) {
