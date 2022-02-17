@@ -310,9 +310,12 @@ JL_DLLEXPORT int cxxinclude(CxxInstance *Cxx, char *fname, int isAngled) {
   clang::FileManager &fm = Cxx->CI->getFileManager();
   clang::Preprocessor &P = Cxx->CI->getPreprocessor();
 
-  const clang::FileEntry *File = P.LookupFile(
-      getTrivialSourceLocation(Cxx), fname, isAngled, P.GetCurDirLookup(),
-      nullptr, CurDir, nullptr, nullptr, nullptr, nullptr);
+  auto File = P.LookupFile(clang::SourceLocation(), fname, isAngled,
+                           P.GetCurDirLookup(),
+                           /*FromFile=*/nullptr, CurDir, /*SearchPath=*/nullptr,
+                           /*RelativePath=*/nullptr,
+                           /*SuggestedModule=*/nullptr, /*IsMapped=*/nullptr,
+                           /*IsFrameworkFound=*/nullptr);
 
   if (!File)
     return 0;
@@ -320,8 +323,8 @@ JL_DLLEXPORT int cxxinclude(CxxInstance *Cxx, char *fname, int isAngled) {
   clang::SourceManager &sm = Cxx->CI->getSourceManager();
 
   clang::FileID FID =
-      sm.createFileID(File, sm.getLocForStartOfFile(sm.getMainFileID()),
-                      P.getHeaderSearchInfo().getFileDirFlavor(File));
+      sm.createFileID(*File, sm.getLocForStartOfFile(sm.getMainFileID()),
+                      P.getHeaderSearchInfo().getFileDirFlavor(*File));
 
   P.EnterSourceFile(FID, CurDir, sm.getLocForStartOfFile(sm.getMainFileID()));
   return _cxxparse(Cxx);
