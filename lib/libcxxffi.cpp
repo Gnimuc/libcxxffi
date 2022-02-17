@@ -2004,7 +2004,7 @@ JL_DLLEXPORT void *GetFunctionReturnType(clang::FunctionDecl *FD) {
 }
 
 JL_DLLEXPORT void *BuildDecltypeType(CxxInstance *Cxx, clang::Expr *E) {
-  clang::QualType T = Cxx->CI->getSema().BuildDecltypeType(E, E->getLocStart());
+  clang::QualType T = Cxx->CI->getSema().BuildDecltypeType(E, E->getBeginLoc());
   return Cxx->CI->getASTContext().getCanonicalType(T).getAsOpaquePtr();
 }
 
