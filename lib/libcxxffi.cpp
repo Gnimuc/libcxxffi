@@ -910,7 +910,7 @@ JL_DLLEXPORT void ReplaceFunctionForDecl(CxxInstance *Cxx,
       Value::user_iterator I = NF->user_begin();
       if (llvm::isa<llvm::CallInst>(*I)) {
         llvm::InlineFunctionInfo IFI;
-        llvm::InlineFunction(cast<llvm::CallInst>(*I), IFI, nullptr, true);
+        llvm::InlineFunction(*cast<llvm::CallInst>(*I), IFI, nullptr, true);
       } else {
         I->print(llvm::errs(), false);
         jl_error("Tried to do something other than calling it to a julia "
@@ -940,8 +940,8 @@ JL_DLLEXPORT bool ParseFunctionStatementBody(CxxInstance *Cxx, clang::Decl *D) {
   assert(Cxx->Parser->getCurToken().is(clang::tok::l_brace));
   clang::SourceLocation LBraceLoc = Cxx->Parser->getCurToken().getLocation();
 
-  clang::PrettyDeclStackTraceEntry CrashInfo(sema, D, LBraceLoc,
-                                             "parsing function body");
+  clang::PrettyDeclStackTraceEntry CrashInfo(
+      Cxx->CI->getASTContext(), D, LBraceLoc, "parsing function body");
 
   // Do not enter a scope for the brace, as the arguments are in the same scope
   // (the function body) as the body itself.  Instead, just read the statement
@@ -987,7 +987,8 @@ JL_DLLEXPORT bool ParseFunctionStatementBody(CxxInstance *Cxx, clang::Decl *D) {
         sema.ActOnFinishFunctionBody(D, nullptr);
         return false;
       }
-      Body->setLastStmt(RetStmt.get());
+      clang::Stmt *LastStmt = Body->body_back();
+      LastStmt = RetStmt.get();
     }
   }
 
