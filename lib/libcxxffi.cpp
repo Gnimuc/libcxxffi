@@ -2596,7 +2596,7 @@ JL_DLLEXPORT void *ActOnTypeParameterParserScope(CxxInstance *Cxx, char *Name,
       Cxx->Parser->getCurScope(), false, clang::SourceLocation(),
       clang::SourceLocation(), PP.getIdentifierInfo(Name),
       clang::SourceLocation(), 0, Position, clang::SourceLocation(),
-      DefaultArg);
+      DefaultArg, false);  // TODO: support type-constraint
   // sema.ActOnPopScope(clang::SourceLocation(),&S);
   return ret;
 }
