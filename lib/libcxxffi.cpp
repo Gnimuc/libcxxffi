@@ -2725,7 +2725,8 @@ JL_DLLEXPORT void *CreateCStyleCast(CxxInstance *Cxx, clang::Expr *E,
   clang::QualType QT(T, 0);
   return (void *)clang::CStyleCastExpr::Create(
       Cxx->CI->getASTContext(), QT, clang::VK_RValue, clang::CK_BitCast, E,
-      nullptr, Cxx->CI->getASTContext().getTrivialTypeSourceInfo(QT),
+      nullptr, Cxx->CI->getSema().CurFPFeatureOverrides(),
+      Cxx->CI->getASTContext().getTrivialTypeSourceInfo(QT),
       clang::SourceLocation(), clang::SourceLocation());
 }
 
