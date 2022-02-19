@@ -307,7 +307,6 @@ JL_DLLEXPORT llvm::Function *CollectGlobalConstructors(CxxInstance *Cxx) {
   clang::CodeGen::CodeGenModule::CtorList &ctors = Cxx->CGM->getGlobalCtors();
   GlobalVariable *GV = Cxx->shadow->getGlobalVariable("llvm.global_ctors");
   if (ctors.empty() && !GV) {
-    return NULL;
   }
 
   // First create the function into which to collect
@@ -424,7 +423,7 @@ JL_DLLEXPORT void *lookup_name(CxxInstance *Cxx, char *name,
     cs.LookupName(R, cs.getCurScope(), false);
   else
     cs.LookupQualifiedName(R, ctx, false);
-  return R.empty() ? NULL : R.getRepresentativeDecl();
+  return R.empty() ? nullptr : R.getRepresentativeDecl();
 }
 
 JL_DLLEXPORT void *SpecializeClass(CxxInstance *Cxx,
@@ -466,8 +465,8 @@ JL_DLLEXPORT void *SpecializeClass(CxxInstance *Cxx,
 
 JL_DLLEXPORT void *typeForDecl(clang::Decl *D) {
   clang::TypeDecl *ty = dyn_cast<clang::TypeDecl>(D);
-  if (ty == NULL)
-    return NULL;
+  if (ty == nullptr)
+    return nullptr;
   return (void *)ty->getTypeForDecl();
 }
 
@@ -489,7 +488,7 @@ JL_DLLEXPORT char *decl_name(clang::NamedDecl *decl) {
   if (!II && (TagD = dyn_cast<clang::TagDecl>(decl))) {
     decl = TagD->getTypedefNameForAnonDecl();
     if (!decl)
-      return NULL;
+      return nullptr;
   }
   std::string str = decl->getQualifiedNameAsString().data();
   char *cstr = (char *)malloc(str.length() + 1);
@@ -1055,7 +1054,7 @@ JL_DLLEXPORT void *BuildCXXNewExpr(CxxInstance *Cxx, clang::Type *type,
           clang::SourceRange(), false, getTrivialSourceLocation(Cxx),
           clang::MultiExprArg(), getTrivialSourceLocation(Cxx),
           clang::SourceRange(), Ty,
-          Cxx->CI->getASTContext().getTrivialTypeSourceInfo(Ty), NULL,
+          Cxx->CI->getASTContext().getTrivialTypeSourceInfo(Ty), nullptr,
           clang::SourceRange(sm.getLocForStartOfFile(sm.getMainFileID()),
                              sm.getLocForStartOfFile(sm.getMainFileID())),
           clang::ParenListExpr::Create(Cxx->CI->getASTContext(),
@@ -1078,11 +1077,11 @@ JL_DLLEXPORT void *build_call_to_member(CxxInstance *Cxx, clang::Expr *MemExprE,
       MemExprE->getType() == Cxx->CI->getASTContext().OverloadTy)
     return (void *)Cxx->CI->getSema()
         .BuildCallToMemberFunction(
-            NULL, MemExprE, getTrivialSourceLocation(Cxx),
+            nullptr, MemExprE, getTrivialSourceLocation(Cxx),
             clang::MultiExprArg(exprs, nexprs), getTrivialSourceLocation(Cxx))
         .get();
   else if (isa<clang::TypoExpr>(MemExprE)) {
-    return NULL;
+    return nullptr;
   } else {
     return clang::CXXMemberCallExpr::Create(
         Cxx->CI->getASTContext(), MemExprE,
@@ -1102,7 +1101,7 @@ JL_DLLEXPORT void *PerformMoveOrCopyInitialization(CxxInstance *Cxx, void *rt,
           clang::QualType::getFromOpaquePtr(rt));
   return (void *)Cxx->CI->getSema()
       .PerformMoveOrCopyInitialization(
-          Entity, NULL, clang::QualType::getFromOpaquePtr(rt), expr, true)
+          Entity, nullptr, clang::QualType::getFromOpaquePtr(rt), expr, true)
       .get();
 }
 
@@ -1336,8 +1335,8 @@ static void set_default_clang_options(CxxInstance *Cxx, bool CCompiler,
                        AddressSpace::Tracked);
 
   llvm::Triple target = llvm::Triple(
-      Triple == NULL ? llvm::Triple::normalize(llvm::sys::getProcessTriple())
-                     : llvm::Triple::normalize(Triple));
+      Triple == nullptr ? llvm::Triple::normalize(llvm::sys::getProcessTriple())
+                        : llvm::Triple::normalize(Triple));
   bool isnvptx = (target.getArch() == Triple::ArchType::nvptx) ||
                  (target.getArch() == Triple::ArchType::nvptx64);
 
@@ -1394,7 +1393,7 @@ static void set_default_clang_options(CxxInstance *Cxx, bool CCompiler,
   Cxx->CI->getCodeGenOpts().StackRealignment = 1;
   Cxx->CI->getTargetOpts().Triple = target.normalize();
   Cxx->CI->getTargetOpts().CPU =
-      CPU == NULL ? llvm::sys::getHostCPUName().data() : CPU;
+      CPU == nullptr ? llvm::sys::getHostCPUName().data() : CPU;
   StringMap<bool> ActiveFeatures;
   std::vector<std::string> Features;
   if (isnvptx) {
@@ -1447,16 +1446,14 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH,
       Cxx->CI->getPreprocessorOpts(), Cxx->CI->getCodeGenOpts(), *Cxx->shadow,
       Cxx->CI->getDiagnostics());
   Cxx->CGF = new clang::CodeGen::CodeGenFunction(*Cxx->CGM);
-  Cxx->CGF->CurFuncDecl = NULL;
-  Cxx->CGF->CurCodeDecl = NULL;
+  Cxx->CGF->CurFuncDecl = nullptr;
+  Cxx->CGF->CurCodeDecl = nullptr;
 
   // Cxx isn't fully initialized yet, but that's fine since JuliaCodeGenerator
   // does not need the parser
   Cxx->JCodeGen = new JuliaCodeGenerator(Cxx);
 
   if (EmitPCH) {
-    assert(&Cxx->CI->getPreprocessor() != NULL);
-    assert(&Cxx->CI->getPreprocessor().getModuleLoader() != NULL);
     llvm::StringRef OutputFile = "Cxx.pch";
     auto Buffer = std::make_shared<clang::PCHBuffer>();
     Cxx->PCHGenerator = new JuliaPCHGenerator(
@@ -1482,7 +1479,7 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH,
         DeserialListener, DeleteDeserialListener);
   }
 
-  Cxx->CI->createSema(clang::TU_Prefix, NULL);
+  Cxx->CI->createSema(clang::TU_Prefix, nullptr);
   Cxx->CI->getSema().addExternalSource(new JuliaSemaSource());
 
   T_int32 = Type::getInt32Ty(jl_LLVMContext);
@@ -1569,17 +1566,14 @@ JL_DLLEXPORT void decouple_pch(CxxInstance *Cxx, char *data) {
   Cxx->CI->getSema().Consumer = Cxx->CI->getASTConsumer();
 }
 
-static llvm::Module *cur_module = NULL;
-static llvm::Function *cur_func = NULL;
+static llvm::Module *cur_module = nullptr;
+static llvm::Function *cur_func = nullptr;
 
 JL_DLLEXPORT void *setup_cpp_env(CxxInstance *Cxx, void *jlfunc) {
-  // assert(in_cpp == false);
-  // in_cpp = true;
-
-  assert(Cxx->CGF != NULL);
+  assert(Cxx->CGF != nullptr);
 
   cppcall_state_t *state = new cppcall_state_t;
-  state->module = NULL;
+  state->module = nullptr;
   state->func = cur_func;
   state->CurFn = Cxx->CGF->CurFn;
   state->block = Cxx->CGF->Builder.GetInsertBlock();
@@ -1587,8 +1581,8 @@ JL_DLLEXPORT void *setup_cpp_env(CxxInstance *Cxx, void *jlfunc) {
   state->prev_alloca_bb_ptr = Cxx->CGF->AllocaInsertPt;
 
   llvm::Function *w = (Function *)jlfunc;
-  assert(w != NULL);
-  cur_module = NULL;
+  assert(w != nullptr);
+  cur_module = nullptr;
   cur_func = w;
 
   Function *ShadowF = (llvm::Function *)jlfunc;
@@ -1604,7 +1598,7 @@ JL_DLLEXPORT void *setup_cpp_env(CxxInstance *Cxx, void *jlfunc) {
   // typically, clang would create this pointer when it started emitting the
   // function instead, we create a dummy reference here for efficiency, we avoid
   // creating a new placehold instruction if possible
-  llvm::Instruction *alloca_bb_ptr = NULL;
+  llvm::Instruction *alloca_bb_ptr = nullptr;
   if (b0->empty()) {
     llvm::Value *Undef = llvm::UndefValue::get(T_int32);
     Cxx->CGF->AllocaInsertPt = alloca_bb_ptr =
@@ -1626,8 +1620,6 @@ JL_DLLEXPORT bool EmitTopLevelDecl(CxxInstance *Cxx, clang::Decl *D) {
 }
 
 JL_DLLEXPORT void cleanup_cpp_env(CxxInstance *Cxx, cppcall_state_t *state) {
-  // assert(in_cpp == true);
-  // in_cpp = false;
   Cxx->CGF->ReturnValue = clang::CodeGen::Address(nullptr, clang::CharUnits());
   Cxx->CGF->Builder.ClearInsertionPoint();
   clang::CodeGen::CallArgList args;
@@ -1686,7 +1678,7 @@ ActOnCallExpr(Scope *S, Expr *Fn, SourceLocation LParenLoc,
 JL_DLLEXPORT void *CreateCallExpr(CxxInstance *Cxx, clang::Expr *Fn,
                                   clang::Expr **exprs, size_t nexprs) {
   return Cxx->CI->getSema()
-      .ActOnCallExpr(NULL, Fn, getTrivialSourceLocation(Cxx),
+      .ActOnCallExpr(nullptr, Fn, getTrivialSourceLocation(Cxx),
                      clang::MultiExprArg(exprs, nexprs),
                      getTrivialSourceLocation(Cxx))
       .get();
@@ -1753,7 +1745,7 @@ JL_DLLEXPORT void *CreateParmVarDecl(CxxInstance *Cxx, void *type, char *name,
       getTrivialSourceLocation(Cxx), getTrivialSourceLocation(Cxx),
       &Cxx->CI->getPreprocessor().getIdentifierTable().getOwn(name), T,
       Cxx->CI->getASTContext().getTrivialTypeSourceInfo(T), clang::SC_None,
-      NULL);
+      nullptr);
   if (used)
     d->setIsUsed();
   return (void *)d;
@@ -1814,7 +1806,7 @@ JL_DLLEXPORT void *CreateDeclRefExpr(CxxInstance *Cxx, clang::ValueDecl *D,
   return (void *)clang::DeclRefExpr::Create(
       Cxx->CI->getASTContext(),
       scope ? scope->getWithLocInContext(Cxx->CI->getASTContext())
-            : clang::NestedNameSpecifierLoc(NULL, NULL),
+            : clang::NestedNameSpecifierLoc(nullptr, nullptr),
       getTrivialSourceLocation(Cxx), D, false, getTrivialSourceLocation(Cxx),
       T.getNonReferenceType(), islvalue ? clang::VK_LValue : clang::VK_RValue);
 }
@@ -1857,7 +1849,7 @@ JL_DLLEXPORT void *emitcallexpr(CxxInstance *Cxx, clang::Expr *E,
     E = cast<clang::CXXBindTemporaryExpr>(E)->getSubExpr();
 
   clang::CallExpr *CE = dyn_cast<clang::CallExpr>(E);
-  assert(CE != NULL);
+  assert(CE != nullptr);
 
   clang::CodeGen::RValue ret = Cxx->CGF->EmitCallExpr(
       CE, clang::CodeGen::ReturnValueSlot(
@@ -1891,7 +1883,7 @@ JL_DLLEXPORT void *get_nth_argument(Function *f, size_t n) {
     if (i == n)
       return (void *)((Value *)&*AI++);
   }
-  return NULL;
+  return nullptr;
 }
 
 JL_DLLEXPORT void *create_extract_value(CxxInstance *Cxx, Value *agg,
@@ -1930,7 +1922,7 @@ JL_DLLEXPORT void *decl_context(clang::Decl *decl) {
                .getTypePtr()
                ->getAsCXXRecordDecl();
   }
-  if (decl == NULL)
+  if (decl == nullptr)
     return decl;
   /*
   if(isa<clang::ClassTemplateSpecializationDecl>(decl))
@@ -2206,7 +2198,7 @@ JL_DLLEXPORT int isElaboratedType(clang::Type *t) {
 }
 
 JL_DLLEXPORT void *isIncompleteType(clang::Type *t) {
-  clang::NamedDecl *ND = NULL;
+  clang::NamedDecl *ND = nullptr;
   t->isIncompleteType(&ND);
   return ND;
 }
@@ -2344,8 +2336,8 @@ JL_DLLEXPORT void *getDirectCallee(clang::CallExpr *e) {
 
 JL_DLLEXPORT void *getCalleeReturnType(clang::CallExpr *e) {
   clang::FunctionDecl *fd = e->getDirectCallee();
-  if (fd == NULL)
-    return NULL;
+  if (fd == nullptr)
+    return nullptr;
   return (void *)fd->getReturnType().getAsOpaquePtr();
 }
 
@@ -2389,7 +2381,7 @@ JL_DLLEXPORT void ExtendNNSType(CxxInstance *Cxx,
 JL_DLLEXPORT void *makeFunctionType(CxxInstance *Cxx, void *rt, void **argts,
                                     size_t nargs) {
   clang::QualType T;
-  if (rt == NULL) {
+  if (rt == nullptr) {
     T = Cxx->CI->getASTContext().getAutoType(
         clang::QualType(), clang::AutoTypeKeyword::DecltypeAuto,
         /*IsDependent*/ false);
@@ -2969,7 +2961,7 @@ static void jl_unblock_signal(int sig) {
   sigset_t sset;
   sigemptyset(&sset);
   sigaddset(&sset, sig);
-  sigprocmask(SIG_UNBLOCK, &sset, NULL);
+  sigprocmask(SIG_UNBLOCK, &sset, nullptr);
 }
 
 extern "C" {
@@ -2987,7 +2979,7 @@ JL_DLLEXPORT void InstallSIGABRTHandler(void *exception) {
   sigemptyset(&act.sa_mask);
   act.sa_sigaction = abrt_handler;
   act.sa_flags = SA_ONSTACK | SA_SIGINFO;
-  if (sigaction(SIGABRT, &act, NULL) < 0) {
+  if (sigaction(SIGABRT, &act, nullptr) < 0) {
     abort(); // hah
   }
 }
