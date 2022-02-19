@@ -21,8 +21,10 @@
 #include "clang/Basic/Builtins.h"
 #include "clang/CodeGen/CGFunctionInfo.h"
 #include "clang/Frontend/CompilerInstance.h"
+#include "clang/Frontend/CompilerInvocation.h"
 #include "clang/Frontend/FrontendOptions.h"
 #include "clang/Frontend/MultiplexConsumer.h"
+#include "clang/Frontend/Utils.h"
 #include "clang/Lex/HeaderSearch.h"
 #include "clang/Lex/Lexer.h"
 #include "clang/Lex/Preprocessor.h"
@@ -31,7 +33,7 @@
 
 // Well, yes this is cheating
 #define private public
-#include "clang/Parse/Parser.h" // 'DeclSpecContext' 'ParseDeclarator'
+#include "clang/Parse/Parser.h" // ParseDeclarationSpecifiers
 #undef private
 
 #include "clang/Parse/RAIIObjectsForParser.h"
@@ -83,7 +85,8 @@ using namespace llvm;
 // From julia
 // extern llvm::LLVMContext &jl_LLVMContext;
 static llvm::LLVMContext &jl_LLVMContext = *(new llvm::LLVMContext());
-static llvm::Type *T_pvalue_llvmt;
+// type
+static llvm::Type *T_jlvalue;
 static llvm::Type *T_pjlvalue;
 static llvm::Type *T_prjlvalue;
 
@@ -307,6 +310,7 @@ JL_DLLEXPORT llvm::Function *CollectGlobalConstructors(CxxInstance *Cxx) {
   clang::CodeGen::CodeGenModule::CtorList &ctors = Cxx->CGM->getGlobalCtors();
   GlobalVariable *GV = Cxx->shadow->getGlobalVariable("llvm.global_ctors");
   if (ctors.empty() && !GV) {
+    return nullptr;
   }
 
   // First create the function into which to collect
@@ -1110,12 +1114,6 @@ JL_DLLEXPORT void *clang_compiler(CxxInstance *Cxx) { return (void *)Cxx->CI; }
 JL_DLLEXPORT void *clang_parser(CxxInstance *Cxx) {
   return (void *)Cxx->Parser;
 }
-
-// Legacy
-
-static llvm::Type *T_int32;
-
-static bool in_cpp = false;
 }
 
 class ValidatingASTVisitor : public clang::DeclVisitor<ValidatingASTVisitor>,
@@ -1316,116 +1314,52 @@ public:
 
 extern "C" {
 
-static void set_common_options(CxxInstance *Cxx) {
-  Cxx->CI->getDiagnosticOpts().ShowColors = 1;
-  Cxx->CI->getDiagnosticOpts().ShowPresumedLoc = 1;
-  Cxx->CI->createDiagnostics();
-  Cxx->CI->getCodeGenOpts().setDebugInfo(clang::codegenoptions::NoDebugInfo);
-}
-
-static void set_default_clang_options(CxxInstance *Cxx, bool CCompiler,
-                                      const char *Triple, const char *CPU,
-                                      const char *SysRoot,
-                                      Type *_T_pvalue_llvmt) {
-  T_pvalue_llvmt = _T_pvalue_llvmt;
-  T_pjlvalue =
-      PointerType::get(cast<PointerType>(T_pvalue_llvmt)->getElementType(), 0);
-  T_prjlvalue =
-      PointerType::get(cast<PointerType>(T_pvalue_llvmt)->getElementType(),
-                       AddressSpace::Tracked);
-
-  llvm::Triple target = llvm::Triple(
-      Triple == nullptr ? llvm::Triple::normalize(llvm::sys::getProcessTriple())
-                        : llvm::Triple::normalize(Triple));
-  bool isnvptx = (target.getArch() == Triple::ArchType::nvptx) ||
-                 (target.getArch() == Triple::ArchType::nvptx64);
-
-  Cxx->CI->getPreprocessorOpts().UsePredefines = 1;
-  Cxx->CI->getHeaderSearchOpts().UseBuiltinIncludes = 1;
-
-  clang::CompilerInvocation::setLangDefaults(
-      Cxx->CI->getLangOpts(), CCompiler ? CKind : CXXKind, target,
-      Cxx->CI->getPreprocessorOpts().Includes);
-
-  Cxx->CI->getLangOpts().LineComment = 1;
-  Cxx->CI->getLangOpts().Bool = 1;
-  Cxx->CI->getLangOpts().WChar = 1;
-  Cxx->CI->getLangOpts().C99 = 1;
-  if (!CCompiler) {
-    bool use_rtti = false;
-    const char *rtti_env_setting = getenv("JULIA_CXX_RTTI");
-    if (rtti_env_setting != nullptr)
-      use_rtti = (atoi(rtti_env_setting) > 0);
-
-    Cxx->CI->getLangOpts().CPlusPlus = 1;
-    Cxx->CI->getLangOpts().CPlusPlus11 = 1;
-    Cxx->CI->getLangOpts().CPlusPlus14 = 1;
-    Cxx->CI->getLangOpts().CPlusPlus17 = 0;
-    Cxx->CI->getLangOpts().MicrosoftExt = 0;
-    Cxx->CI->getLangOpts().RTTI = use_rtti;
-    Cxx->CI->getLangOpts().RTTIData = use_rtti;
-    Cxx->CI->getLangOpts().Exceptions = 1;     // exception handling
-    Cxx->CI->getLangOpts().ObjCExceptions = 1; //  Objective-C exceptions
-    Cxx->CI->getLangOpts().CXXExceptions = 1;  // C++ exceptions
-#ifdef _OS_WINDOWS_
-    Cxx->CI->getLangOpts().SEHExceptions =
-        1; // Julia uses SEH exception handling on Windows
-#endif
-    Cxx->CI->getLangOpts().CXXOperatorNames = 1;
-    Cxx->CI->getLangOpts().DoubleSquareBracketAttributes = 1;
-    Cxx->CI->getHeaderSearchOpts().UseLibcxx = 1;
-    Cxx->CI->getHeaderSearchOpts().UseStandardSystemIncludes = 1;
-    Cxx->CI->getHeaderSearchOpts().UseStandardCXXIncludes = 1;
-  }
-  Cxx->CI->getLangOpts().ImplicitInt = 0;
-  Cxx->CI->getLangOpts().PICLevel = 2;
-  if (isnvptx) {
-    Cxx->CI->getLangOpts().CUDA = 1;
-    Cxx->CI->getLangOpts().CUDAIsDevice = 1;
-    Cxx->CI->getLangOpts().DeclSpecKeyword = 1;
-  }
-
-  // TODO: Decide how we want to handle this
-  // clang_compiler->getLangOpts().AccessControl = 0;
-  if (SysRoot)
-    Cxx->CI->getHeaderSearchOpts().Sysroot = SysRoot;
-  Cxx->CI->getCodeGenOpts().DwarfVersion = 2;
-  Cxx->CI->getCodeGenOpts().StackRealignment = 1;
-  Cxx->CI->getTargetOpts().Triple = target.normalize();
-  Cxx->CI->getTargetOpts().CPU =
-      CPU == nullptr ? llvm::sys::getHostCPUName().data() : CPU;
-  StringMap<bool> ActiveFeatures;
-  std::vector<std::string> Features;
-  if (isnvptx) {
-    Features.push_back("+ptx42");
-    Cxx->CI->getTargetOpts().Features = Features;
-  } else if (llvm::sys::getHostCPUFeatures(ActiveFeatures)) {
-    for (auto &F : ActiveFeatures)
-      Features.push_back(std::string(F.second ? "+" : "-") +
-                         std::string(F.first()));
-    Cxx->CI->getTargetOpts().Features = Features;
-  }
-}
-
 JL_DLLEXPORT int set_access_control_enabled(CxxInstance *Cxx, int enabled) {
   int enabled_before = Cxx->CI->getLangOpts().AccessControl;
   Cxx->CI->getLangOpts().AccessControl = enabled;
   return enabled_before;
 }
 
-static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH,
-                              const char *PCHBuffer, size_t PCHBufferSize,
-                              time_t PCHTime) {
+JL_DLLEXPORT void init_types() {
+  T_jlvalue = llvm::StructType::get(jl_LLVMContext);
+  T_pjlvalue = llvm::PointerType::get(T_jlvalue, 0);
+  T_prjlvalue = llvm::PointerType::get(T_jlvalue, AddressSpace::Tracked);
+}
+
+JL_DLLEXPORT void
+init_clang_instance(CxxInstance *Cxx, const char **cmd_args_with_src,
+                    int num_cmd_args, bool EmitPCH, const char *PCHBuffer,
+                    size_t PCHBufferSize, struct tm *PCHTime) {
+  Cxx->CI = new clang::CompilerInstance;
+
+  Cxx->CI->getDiagnosticOpts().ShowColors = 1;
+  Cxx->CI->getDiagnosticOpts().ShowPresumedLoc = 1;
+  Cxx->CI->createDiagnostics();
+
+  Cxx->CI->getCodeGenOpts().setDebugInfo(clang::codegenoptions::NoDebugInfo);
+
+  std::unique_ptr<clang::CompilerInvocation> invoc =
+      clang::createInvocationFromCommandLine(
+          llvm::makeArrayRef(cmd_args_with_src, num_cmd_args),
+          llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine>(&Cxx->CI->getDiagnostics()));
+  Cxx->CI->setInvocation(std::move(invoc));
+
   Cxx->CI->setTarget(clang::TargetInfo::CreateTargetInfo(
       Cxx->CI->getDiagnostics(),
       std::make_shared<clang::TargetOptions>(Cxx->CI->getTargetOpts())));
+  Cxx->CI->getTarget().adjust(Cxx->CI->getLangOpts());
+
+  time_t t = time(0);
+  if (PCHTime)
+    t = mktime(PCHTime);
+
   clang::TargetInfo &tin = Cxx->CI->getTarget();
   if (PCHBuffer) {
     llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> Overlay(
         new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
     llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> IMFS(
         new llvm::vfs::InMemoryFileSystem);
-    IMFS->addFile("/Cxx.pch", PCHTime,
+    IMFS->addFile("/Cxx.pch", t,
                   llvm::MemoryBuffer::getMemBuffer(
                       StringRef(PCHBuffer, PCHBufferSize), "Cxx.pch", false));
     Overlay->pushOverlay(IMFS);
@@ -1482,8 +1416,6 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH,
   Cxx->CI->createSema(clang::TU_Prefix, nullptr);
   Cxx->CI->getSema().addExternalSource(new JuliaSemaSource());
 
-  T_int32 = Type::getInt32Ty(jl_LLVMContext);
-
   clang::Sema &sema = Cxx->CI->getSema();
   clang::Preprocessor &pp = Cxx->CI->getPreprocessor();
   Cxx->Parser = new clang::Parser(pp, sema, false);
@@ -1512,36 +1444,10 @@ static void finish_clang_init(CxxInstance *Cxx, bool EmitPCH,
 
   _cxxparse(Cxx);
 
-  f_julia_type_to_llvm = (llvm::Type * (*)(void *, bool *))
-      dlsym(RTLD_DEFAULT, "jl_type_to_llvm");
+  f_julia_type_to_llvm =
+      (llvm::Type * (*)(void *, bool *)) dlsym(RTLD_DEFAULT, "jl_type_to_llvm");
 
   assert(f_julia_type_to_llvm);
-}
-
-JL_DLLEXPORT void init_clang_instance(CxxInstance *Cxx, const char *Triple,
-                                      const char *CPU, const char *SysRoot,
-                                      bool EmitPCH, bool CCompiler,
-                                      const char *PCHBuffer,
-                                      size_t PCHBufferSize, struct tm *PCHTime,
-                                      Type *_T_pvalue_llvmt) {
-  Cxx->CI = new clang::CompilerInstance;
-  set_common_options(Cxx);
-  set_default_clang_options(Cxx, CCompiler, Triple, CPU, SysRoot,
-                            _T_pvalue_llvmt);
-  time_t t = time(0);
-  if (PCHTime)
-    t = mktime(PCHTime);
-  finish_clang_init(Cxx, EmitPCH, PCHBuffer, PCHBufferSize, t);
-}
-
-JL_DLLEXPORT void
-init_clang_instance_from_invocation(CxxInstance *Cxx,
-                                    clang::CompilerInvocation *Inv) {
-  Cxx->CI = new clang::CompilerInstance;
-  Cxx->CI->setInvocation(std::shared_ptr<clang::CompilerInvocation>(Inv));
-  set_common_options(Cxx);
-  time_t t(0);
-  finish_clang_init(Cxx, false, nullptr, 0, t);
 }
 
 #define xstringify(s) stringify(s)
@@ -1600,9 +1506,10 @@ JL_DLLEXPORT void *setup_cpp_env(CxxInstance *Cxx, void *jlfunc) {
   // creating a new placehold instruction if possible
   llvm::Instruction *alloca_bb_ptr = nullptr;
   if (b0->empty()) {
-    llvm::Value *Undef = llvm::UndefValue::get(T_int32);
-    Cxx->CGF->AllocaInsertPt = alloca_bb_ptr =
-        new llvm::BitCastInst(Undef, T_int32, "", b0);
+    llvm::Value *Undef =
+        llvm::UndefValue::get(llvm::Type::getInt32Ty(jl_LLVMContext));
+    Cxx->CGF->AllocaInsertPt = alloca_bb_ptr = new llvm::BitCastInst(
+        Undef, llvm::Type::getInt32Ty(jl_LLVMContext), "", b0);
   } else {
     Cxx->CGF->AllocaInsertPt = &(b0->front());
   }
