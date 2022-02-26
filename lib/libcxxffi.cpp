@@ -2085,19 +2085,36 @@ JL_DLLEXPORT void *CreateConstGEP1_32(CxxIRBuilder *builder, llvm::Value *val,
   return (void *)builder->CreateConstGEP1_32(val, idx);
 }
 
-#define TMember(s)                                                             \
-  JL_DLLEXPORT int s(clang::Type *t) { return t->s(); }
+JL_DLLEXPORT int isVoidType(clang::Type *t) { return t->isVoidType(); }
+JL_DLLEXPORT int isBooleanType(clang::Type *t) { return t->isBooleanType(); }
+JL_DLLEXPORT int isPointerType(clang::Type *t) { return t->isPointerType(); }
+JL_DLLEXPORT int isFunctionPointerType(clang::Type *t) {
+  return t->isFunctionPointerType();
+}
+JL_DLLEXPORT int isFunctionType(clang::Type *t) { return t->isFunctionType(); }
+JL_DLLEXPORT int isFunctionProtoType(clang::Type *t) {
+  return t->isFunctionProtoType();
+}
+JL_DLLEXPORT int isMemberFunctionPointerType(clang::Type *t) {
+  return t->isMemberFunctionPointerType();
+}
+JL_DLLEXPORT int isReferenceType(clang::Type *t) {
+  return t->isReferenceType();
+}
+JL_DLLEXPORT int isCharType(clang::Type *t) { return t->isCharType(); }
+JL_DLLEXPORT int isIntegerType(clang::Type *t) { return t->isIntegerType(); }
+JL_DLLEXPORT int isEnumeralType(clang::Type *t) { return t->isEnumeralType(); }
+JL_DLLEXPORT int isFloatingType(clang::Type *t) { return t->isFloatingType(); }
+JL_DLLEXPORT int isDependentType(clang::Type *t) {
+  return t->isDependentType();
+}
+JL_DLLEXPORT int isTemplateTypeParmType(clang::Type *t) {
+  return t->isTemplateTypeParmType();
+}
+JL_DLLEXPORT int isArrayType(clang::Type *t) { return t->isArrayType(); }
 
-TMember(isVoidType) TMember(isBooleanType) TMember(isPointerType)
-    TMember(isFunctionPointerType) TMember(isFunctionType)
-        TMember(isFunctionProtoType) TMember(isMemberFunctionPointerType)
-            TMember(isReferenceType) TMember(isCharType) TMember(isIntegerType)
-                TMember(isEnumeralType) TMember(isFloatingType)
-                    TMember(isDependentType) TMember(isTemplateTypeParmType)
-                        TMember(isArrayType)
-
-                            JL_DLLEXPORT
-    int isTemplateSpecializationType(clang::Type *t) {
+JL_DLLEXPORT
+int isTemplateSpecializationType(clang::Type *t) {
   return isa<clang::TemplateSpecializationType>(t);
 }
 
