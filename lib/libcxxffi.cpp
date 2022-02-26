@@ -547,7 +547,7 @@ typedef struct cppcall_state {
   llvm::Instruction *alloca_bb_ptr;
 } cppcall_state_t;
 
-void *setup_cpp_env(CxxInstance *Cxx, void *jlfunc);
+void *setup_cpp_env(CxxInstance *Cxx, LLVMValueRef jlfunc);
 void cleanup_cpp_env(CxxInstance *Cxx, cppcall_state_t *);
 extern void jl_(void *);
 static Function *CloneFunctionAndAdjust(
@@ -574,7 +574,8 @@ static Function *CloneFunctionAndAdjust(
     T_size = T_int32;
 
   if (needsbox) {
-    cppcall_state_t *state = (cppcall_state_t *)setup_cpp_env(Cxx, NewF);
+    cppcall_state_t *state =
+        (cppcall_state_t *)setup_cpp_env(Cxx, llvm::wrap(NewF));
     // Julia 0.7 Implementation
     if (newgc) {
       // Ok, we need to go through and box the arguments.
@@ -1342,7 +1343,8 @@ init_clang_instance(CxxInstance *Cxx, const char **cmd_args_with_src,
   std::unique_ptr<clang::CompilerInvocation> invoc =
       clang::createInvocationFromCommandLine(
           llvm::makeArrayRef(cmd_args_with_src, num_cmd_args),
-          llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine>(&Cxx->CI->getDiagnostics()));
+          llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine>(
+              &Cxx->CI->getDiagnostics()));
   Cxx->CI->setInvocation(std::move(invoc));
 
   Cxx->CI->setTarget(clang::TargetInfo::CreateTargetInfo(
@@ -1476,7 +1478,7 @@ JL_DLLEXPORT void decouple_pch(CxxInstance *Cxx, char *data) {
 static llvm::Module *cur_module = nullptr;
 static llvm::Function *cur_func = nullptr;
 
-JL_DLLEXPORT void *setup_cpp_env(CxxInstance *Cxx, void *jlfunc) {
+JL_DLLEXPORT void *setup_cpp_env(CxxInstance *Cxx, LLVMValueRef jlfunc) {
   assert(Cxx->CGF != nullptr);
 
   cppcall_state_t *state = new cppcall_state_t;
@@ -1492,7 +1494,7 @@ JL_DLLEXPORT void *setup_cpp_env(CxxInstance *Cxx, void *jlfunc) {
   cur_module = nullptr;
   cur_func = w;
 
-  Function *ShadowF = (llvm::Function *)jlfunc;
+  llvm::Function *ShadowF = llvm::unwrap<llvm::Function>(jlfunc);
 
   BasicBlock *b0 =
       BasicBlock::Create(Cxx->shadow->getContext(), "top", ShadowF);
@@ -1727,12 +1729,12 @@ JL_DLLEXPORT void *DeduceReturnType(clang::Expr *expr) {
   return expr->getType().getAsOpaquePtr();
 }
 
-JL_DLLEXPORT void *CreateFunction(CxxInstance *Cxx, llvm::Type *rt,
-                                  llvm::Type **argt, size_t nargs) {
+JL_DLLEXPORT LLVMValueRef CreateFunction(CxxInstance *Cxx, llvm::Type *rt,
+                                         llvm::Type **argt, size_t nargs) {
   llvm::FunctionType *ft = llvm::FunctionType::get(
       rt, llvm::ArrayRef<llvm::Type *>(argt, nargs), false);
-  return (void *)llvm::Function::Create(ft, llvm::GlobalValue::ExternalLinkage,
-                                        "cxxjl", Cxx->shadow);
+  return llvm::wrap(llvm::Function::Create(
+      ft, llvm::GlobalValue::ExternalLinkage, "cxxjl", Cxx->shadow));
 }
 
 JL_DLLEXPORT void *tovdecl(clang::Decl *D) {
@@ -1784,7 +1786,8 @@ JL_DLLEXPORT void *EmitAnyExpr(CxxInstance *Cxx, clang::Expr *E,
     return ret.getAggregateAddress().getPointer();
 }
 
-JL_DLLEXPORT void *get_nth_argument(Function *f, size_t n) {
+JL_DLLEXPORT void *get_nth_argument(LLVMValueRef fn, size_t n) {
+  llvm::Function *f = llvm::unwrap<llvm::Function>(fn);
   size_t i = 0;
   Function::arg_iterator AI = f->arg_begin();
   for (; AI != f->arg_end(); ++i, ++AI) {
