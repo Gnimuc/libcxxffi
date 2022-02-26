@@ -177,14 +177,15 @@ JL_DLLEXPORT void add_directory(CxxInstance *Cxx, int kind, int isFramework,
   auto &fm = Cxx->CI->getFileManager();
   auto &pp = Cxx->Parser->getPreprocessor();
   auto DE = fm.getOptionalDirectoryRef(llvm::StringRef(dirname));
-  if (DE)
-    std::cout << "WARNING: Could not add directory " << dirname
-              << " to clang search path!\n";
-  else
+  if (DE) {
     pp.getHeaderSearchInfo().AddSearchPath(
         clang::DirectoryLookup(*DE, flag, isFramework),
         flag == clang::SrcMgr::C_System ||
             flag == clang::SrcMgr::C_ExternCSystem);
+  } else {
+    std::cout << "WARNING: Could not add directory " << dirname
+              << " to clang search path!\n";
+  }
 }
 
 JL_DLLEXPORT int isCCompiler(CxxInstance *Cxx) {
