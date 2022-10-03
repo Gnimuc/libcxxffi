@@ -1461,7 +1461,7 @@ JL_DLLEXPORT void cleanup_cpp_env(CxxInstance *Cxx, cppcall_state_t *state) {
     // GV.print(llvm::errs(), false);
     if (GV.hasPrivateLinkage() || GV.hasLinkOnceODRLinkage()) {
       GV.setLinkage(llvm::GlobalVariable::LinkOnceODRLinkage);
-    } else {
+    } else if (!GV.hasAppendingLinkage()) {
       GV.setLinkage(llvm::GlobalVariable::ExternalLinkage);
     }
   }
