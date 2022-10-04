@@ -1466,6 +1466,12 @@ JL_DLLEXPORT void cleanup_cpp_env(CxxInstance *Cxx, cppcall_state_t *state) {
     }
   }
 
+  for (auto &GF : jl_Module) {
+    if (GF.getSection() == ".text.startup") {
+      GF.setSection("");
+    }
+  }
+
   Function *F = Cxx->CGF->CurFn;
 
   // cleanup the environment
