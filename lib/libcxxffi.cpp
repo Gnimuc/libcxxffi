@@ -1459,10 +1459,16 @@ JL_DLLEXPORT void cleanup_cpp_env(CxxInstance *Cxx, cppcall_state_t *state) {
 
   for (auto &GV : jl_Module.globals()) {
     // GV.print(llvm::errs(), false);
-    if (GV.hasPrivateLinkage() || GV.hasLinkOnceODRLinkage()) {
+    if (GV.hasLocalLinkage() || GV.hasLinkOnceODRLinkage()) {
       GV.setLinkage(llvm::GlobalVariable::LinkOnceODRLinkage);
     } else if (!GV.hasAppendingLinkage()) {
       GV.setLinkage(llvm::GlobalVariable::ExternalLinkage);
+    }
+  }
+
+  for (auto &GF : jl_Module) {
+    if (GF.getSection() == ".text.startup") {
+      GF.setSection("");
     }
   }
 
